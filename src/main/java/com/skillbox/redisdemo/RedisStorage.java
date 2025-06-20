@@ -16,24 +16,17 @@ public class RedisStorage {
     // Объект для работы с Redis
     private RedissonClient redisson;
 
-    // Объект для работы с ключами
-    private RKeys rKeys;
-
     // Объект для работы с Sorted Set'ом
-    private RScoredSortedSet<String> onlineUsers;
+    public RScoredSortedSet<String> users;
 
-    private final static String KEY = "ONLINE_USERS";
+    private final static String KEY = "USERS";
 
-    private double getTs() {
-        return new Date().getTime() / 1000;
+    public double getTs() {
+        return (double) new Date().getTime() / 1000;
     }
 
-    // Пример вывода всех ключей
-    public void listKeys() {
-        Iterable<String> keys = rKeys.getKeys();
-        for(String key: keys) {
-            out.println("KEY: " + key + ", type:" + rKeys.getType(key));
-        }
+    public RScoredSortedSet<String> getUsers() {
+        return users;
     }
 
     void init() {
@@ -45,33 +38,16 @@ public class RedisStorage {
             out.println("Не удалось подключиться к Redis");
             out.println(Exc.getMessage());
         }
-        rKeys = redisson.getKeys();
-        onlineUsers = redisson.getScoredSortedSet(KEY);
+        // Объект для работы с ключами
+        RKeys rKeys = redisson.getKeys();
+        users = redisson.getScoredSortedSet(KEY);
         rKeys.delete(KEY);
     }
 
-    void shutdown() {
-        redisson.shutdown();
-    }
-
     // Фиксирует посещение пользователем страницы
-    void logPageVisit(int user_id)
+    void logSite(int user_id)
     {
         //ZADD ONLINE_USERS
-        onlineUsers.add(getTs(), String.valueOf(user_id));
-    }
-
-    // Удаляет
-    void deleteOldEntries(int secondsAgo)
-    {
-        //ZREVRANGEBYSCORE ONLINE_USERS 0 <time_5_seconds_ago>
-        onlineUsers.removeRangeByScore(0, true, getTs() - secondsAgo, true);
-
-
-    }
-    int calculateUsersNumber()
-    {
-        //ZCOUNT ONLINE_USERS
-        return onlineUsers.count(Double.NEGATIVE_INFINITY, true, Double.POSITIVE_INFINITY, true);
+        users.add(getTs(), String.valueOf(user_id));
     }
 }
